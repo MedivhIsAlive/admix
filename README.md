@@ -2,6 +2,10 @@
 
 This is a django drf project with logic for generating periodic reports based on data from models
 
+### Prerequisites
+Docker and Docker Compose (if using Docker)
+Python 3.10+ (if running locally)
+PostgreSQL (if running locally)
 
 ### Set-up
 
