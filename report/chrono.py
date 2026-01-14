@@ -3,15 +3,15 @@ from dateutil.relativedelta import relativedelta
 
 from django.utils import timezone
 
-from typing import Iterator, Literal, Optional
+from typing import Iterator, Optional
 
-Period = Literal["daily", "weekly", "monthly"]
+from report.period import Period
 
 
 def iter_period_starts(
     start_date: Optional[datetime],
     end_date: Optional[datetime] = None,
-    period: Period = "weekly",
+    period: Period = Period.WEEKLY,
 ) -> Iterator[datetime]:
     """
     Yields dates between start and end.
@@ -26,11 +26,11 @@ def iter_period_starts(
     if end_date is None:
         end_date = timezone.now()
 
-    if period == 'daily':
+    if period == Period.DAILY:
         step = relativedelta(days=1)
-    elif period == 'weekly':
+    elif period == Period.WEEKLY:
         step = relativedelta(weeks=1)
-    elif period == 'monthly':
+    elif period == Period.MONTHLY:
         step = relativedelta(months=1)
     else:
         raise ValueError(f"unknown period: {period}")

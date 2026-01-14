@@ -1,24 +1,14 @@
-from __future__ import annotations
-
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta
+from datetime import date
 from decimal import Decimal
 
 from django.contrib.auth import get_user_model
-from django.db.models import Count, Sum, F, Q, Value, DecimalField
-from django.db.models.functions import Coalesce, TruncDate, TruncWeek, TruncMonth
+from django.db.models import Count, Sum, Q, Value
+from django.db.models.functions import Coalesce
 from django.utils import timezone
 
-from orders.models import Order, OrderItem1, OrderItem2
 from report.chrono import iter_period_starts
-
-import enum
-
-
-class Period(enum.StrEnum):
-    DAILY = "daily"
-    WEEKLY = "weekly"
-    MONTHLY = "montly"
+from report.period import Period
 
 
 @dataclass()

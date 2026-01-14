@@ -1,7 +1,6 @@
 from django.contrib.auth.base_user import BaseUserManager
 from django.db import models
 from django.db.models import Count, Sum, F, Value, OuterRef, Subquery
-from django.db.models.expressions import ExpressionWrapper
 from django.db.models.functions import Coalesce
 
 from orders.models import Order, OrderItem1, OrderItem2
@@ -10,11 +9,6 @@ from orders.models import Order, OrderItem1, OrderItem2
 class UserQuerySet(models.QuerySet):
 
     def with_stats(self) -> "UserQuerySet":
-        """
-        Annotates users with stats.
-        Optimization: 'total_spent' is removed from the DB query to prevents
-        Postgres from running the expensive aggregation subqueries twice.
-        """
         money_field = models.DecimalField(max_digits=18, decimal_places=2)
         zero_money = Value(0, output_field=money_field)
 

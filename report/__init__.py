@@ -1,5 +1,6 @@
-from report.generator import ReportRow, generate_user_orders_report
+from report.period import Period
 from report.chrono import iter_period_starts
+from report.generator import ReportRow, generate_user_orders_report
 
 
 def print_report_by_rows(rows: list[ReportRow]):
@@ -27,6 +28,7 @@ def print_report_by_rows(rows: list[ReportRow]):
 
 
 __all__ = (
+    "Period",
     "ReportRow",
     "iter_period_starts",
     "print_report_by_rows",
