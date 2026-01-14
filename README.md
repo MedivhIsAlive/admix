@@ -2,6 +2,10 @@
 
 This is a django drf project with logic for generating periodic reports based on data from models
 
+### Prerequisites
+Docker and Docker Compose (if using Docker)
+Python 3.10+ (if running locally)
+PostgreSQL (if running locally)
 
 ### Set-up
 
@@ -17,7 +21,8 @@ If you want to set it up locally, then
    `source ./venv/bin/activate`
    `python3 -m pip install -r requirements.txt`
 
-2. Migrations and test
+2. Migrations and test(assuming your db is already confugired)
    `python3 manage.py makemigrations`
    `python3 manage.py migrate`
    `python3 manage.py test`
+<img width="1621" height="498" alt="image" src="https://github.com/user-attachments/assets/04d598b3-3060-4671-8c68-642a3f64f8e3" />
