@@ -1,13 +1,12 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 from datetime import date
 from decimal import Decimal
 
 from django.contrib.auth import get_user_model
 from django.db.models import Count, Sum, Q, Value
 from django.db.models.functions import Coalesce
-from django.utils import timezone
 
-from report.chrono import iter_period_starts
+from report.chrono import iter_period_starts, as_aware_datetime
 from report.period import Period
 
 
@@ -26,9 +25,15 @@ class ReportRow:
     def orders_total_amount(self):
         return self.orderitem1_amount + self.orderitem2_amount
 
+    def to_dict(self):
+        return {
+            **asdict(self),
+            "orders_total_amount": self.orders_total_amount,
+        }
+
 
 def generate_user_orders_report(
-    start: date = None,
+    start: date,
     end: date = None,
     period: Period = Period.WEEKLY,
 ) -> list[ReportRow]:
@@ -38,10 +43,8 @@ def generate_user_orders_report(
         raise ValueError("start date is required")
 
     for (start, end) in iter_period_starts(
-        start_date=start,
-        end_date=end or timezone.now(),
+        start_date=as_aware_datetime(start), end_date=as_aware_datetime(end, end_of_day=True),
     ):
-
         user_rows = (
             get_user_model()
             .objects
@@ -50,6 +53,7 @@ def generate_user_orders_report(
                 date_joined__lt=end,
             )
             .with_stats()
+            .order_by('date_joined')
         )
         money_zero = Value(Decimal("0.0"))
         report_data = user_rows.aggregate(

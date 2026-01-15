@@ -1,5 +1,5 @@
 from report.period import Period
-from report.chrono import iter_period_starts
+from report.chrono import iter_period_starts, as_aware_datetime
 from report.generator import ReportRow, generate_user_orders_report
 
 
@@ -33,4 +33,5 @@ __all__ = (
     "iter_period_starts",
     "print_report_by_rows",
     "generate_user_orders_report",
+    "as_aware_datetime",
 )

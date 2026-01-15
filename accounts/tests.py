@@ -7,12 +7,23 @@ from django.db.models import Case, When, Value, DateTimeField, Count, Sum, F
 from django.db.models.functions import Coalesce
 from django.test import TestCase
 from django.utils import timezone
+from django.urls import reverse
 from django.contrib.auth import get_user_model
 
+
 from orders.models import Order, OrderItem1, OrderItem2
-from report import generate_user_orders_report, ReportRow, print_report_by_rows
+from report import generate_user_orders_report, print_report_by_rows
+from report.chrono import as_aware_datetime
+from report.period import Period
 
 User = get_user_model()
+
+
+def get_start_end_datetime():
+    return (
+        as_aware_datetime(timezone.now() - timedelta(days=60)),
+        as_aware_datetime(timezone.now(), end_of_day=True),
+    )
 
 
 class TestReport(TestCase):
@@ -95,11 +106,26 @@ class TestReport(TestCase):
             OrderItem1.objects.bulk_create(item1_buf, batch_size=cls.BATCH)
             OrderItem2.objects.bulk_create(item2_buf, batch_size=cls.BATCH)
 
+    def setUp(self):
+        self.url = reverse('user-orders-report')
+        self.maxDiff = None
+        self.user = User.objects.create(username="testuser", email="test@example.com")
+
     def test_report_under_pressure(self):
-        start = timezone.now() - timedelta(days=120)
-        end = timezone.now()
-        report_rows = list(generate_user_orders_report(start=start, end=end, period="daily"))
-        users_filtered = User.objects.filter(date_joined__gte=start, date_joined__lt=end)
+        start_date, end_date = get_start_end_datetime()
+
+        users_filtered = User.objects.filter(date_joined__gte=start_date, date_joined__lt=end_date).order_by("date_joined")
+        report_rows = list(generate_user_orders_report(start=start_date, end=end_date, period=Period.DAILY))
+
+        response = self.client.get(
+            self.url,
+            {
+                "start_date": start_date.date().isoformat(),
+                "end_date": end_date.date().isoformat(),
+                "period": Period.DAILY,
+            }
+        )
+        response_rows = response.json()["results"]
 
         orders = Order.objects.filter(user__in=users_filtered)
         items1 = OrderItem1.objects.filter(order__user__in=users_filtered).aggregate(
@@ -109,29 +135,37 @@ class TestReport(TestCase):
         items2 = OrderItem2.objects.filter(order__user__in=users_filtered).aggregate(
             sum=Coalesce(Sum(F("placement_price") + F("article_price")), Decimal("0.0")),
             count=Count("id")
-        )
 
-        expected_report = ReportRow(
-            period="-",
-            new_users=users_filtered.count(),
-            activated_users=users_filtered.count(),
-            orders_count=orders.count(),
-            orderitem1_count=items1["count"],
-            orderitem1_amount=items1["sum"],
-            orderitem2_count=items2["count"],
-            orderitem2_amount=items2["sum"],
         )
-        actual_report = ReportRow(
-            period="-",
-            new_users=sum(r.new_users for r in report_rows),
-            activated_users=sum(r.new_users for r in report_rows),
-            orders_count=sum(r.orders_count for r in report_rows),
-            orderitem1_count=sum(r.orderitem1_count for r in report_rows),
-            orderitem1_amount=sum(r.orderitem1_amount for r in report_rows),
-            orderitem2_count=sum(r.orderitem2_count for r in report_rows),
-            orderitem2_amount=sum(r.orderitem2_amount for r in report_rows),
-        )
+        expected_report = {
+            "new_users": users_filtered.count(),
+            "activated_users": users_filtered.count(),
+            "orders_count": f"{orders.count()}",
+            "orderitem1_count": items1["count"],
+            "orderitem1_amount": f'{items1["sum"].quantize(Decimal("0.01"))}',
+            "orderitem2_count": items2["count"],
+            "orderitem2_amount": f'{items2["sum"].quantize(Decimal("0.01"))}',
+        }
+        actual_report = {
+            "new_users": sum(r.new_users for r in report_rows),
+            "activated_users": sum(r.new_users for r in report_rows),
+            "orders_count": f"{sum(r.orders_count for r in report_rows)}",
+            "orderitem1_count": sum(r.orderitem1_count for r in report_rows),
+            "orderitem1_amount": f"{sum(r.orderitem1_amount for r in report_rows):.2f}",
+            "orderitem2_count": sum(r.orderitem2_count for r in report_rows),
+            "orderitem2_amount": f"{sum(r.orderitem2_amount for r in report_rows):.2f}",
+        }
+        response_report = {
+            "new_users": sum(r["new_users"] for r in response_rows),
+            "activated_users": sum(r["new_users"] for r in response_rows),
+            "orders_count": f'{sum(r["orders_count"] for r in response_rows)}',
+            "orderitem1_count": sum(r["orderitem1_count"] for r in response_rows),
+            "orderitem1_amount": f'{sum(r["orderitem1_amount"] for r in response_rows):.2f}',
+            "orderitem2_count": sum(r["orderitem2_count"] for r in response_rows),
+            "orderitem2_amount": f'{sum(r["orderitem2_amount"] for r in response_rows):.2f}',
+        }
 
+        self.assertEqual(expected_report, response_report)
         self.assertEqual(actual_report, expected_report)
 
         print_report_by_rows(report_rows)

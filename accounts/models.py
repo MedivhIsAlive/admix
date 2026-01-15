@@ -13,3 +13,6 @@ class User(AbstractUser):
     date_joined = models.DateTimeField(auto_now_add=True)
 
     objects = UserManagerQS()
+
+    def __str__(self):
+        return f"{self.username} {self.date_joined}"

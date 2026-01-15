@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime, time
 from dateutil.relativedelta import relativedelta
 
 from django.utils import timezone
@@ -8,8 +8,20 @@ from typing import Iterator, Optional
 from report.period import Period
 
 
+def as_aware_datetime(v, *, end_of_day=False):
+    v = v.date() if isinstance(v, datetime) else v
+    if isinstance(v, date) and not isinstance(v, datetime):
+        t = time.max if end_of_day else time.min
+        v = datetime.combine(v, t)
+
+    if timezone.is_naive(v):
+        v = timezone.make_aware(v, timezone.get_current_timezone())
+
+    return v
+
+
 def iter_period_starts(
-    start_date: Optional[datetime],
+    start_date: datetime,
     end_date: Optional[datetime] = None,
     period: Period = Period.WEEKLY,
 ) -> Iterator[datetime]:
@@ -24,7 +36,7 @@ def iter_period_starts(
         raise ValueError("start date is required")
 
     if end_date is None:
-        end_date = timezone.now()
+        end_date = timezone.now().date()
 
     if period == Period.DAILY:
         step = relativedelta(days=1)
