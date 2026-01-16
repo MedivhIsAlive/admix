@@ -9,7 +9,7 @@ PostgreSQL (if running locally)
 
 ### Set-up
 
-.env file needs to be inside the project directory with this params (at least)
+.env file needs to be inside the project directory
 
 POSTGRES_DB=*
 POSTGRES_USER=*
